@@ -1,0 +1,16 @@
+defmodule Repo do
+  use Ecto.Repo, adapter: Ecto.Adapters.Postgres
+
+  def conf, do: parse_url "ecto://postgres:postgres@localhost/finch_test"
+
+
+  def log({:query, sql}, fun) do
+    {time, result} = :timer.tc(fun)
+    :io.format("SQL ~n~p~n", [sql])
+    Logger.log({sql, time})
+    result
+  end
+
+  def log(_arg, fun), do: fun.()
+
+end
