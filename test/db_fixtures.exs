@@ -30,7 +30,7 @@ defmodule Fixture do
     Ecto.Migrator.down(Repo, 0, Finch.Test.TableFixtures)
     IO.puts("Migrate down")
     Ecto.Migrator.up(Repo, 0, Finch.Test.TableFixtures)
-    IO.puts("Migrate up")
+    IO.puts("Migrate up ")
 
   end
 
