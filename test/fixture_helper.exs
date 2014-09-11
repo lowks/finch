@@ -2,9 +2,9 @@ ExUnit.start
 
 
 alias Ecto.Adapters.Postgres
-alias Ecto.Integration.Postgres.TestRepo
+alias Finch.Test.TestRepo
 
-defmodule Ecto.Integration.Postgres.TestRepo do
+defmodule Finch.Test.TestRepo do
   use Ecto.Repo, adapter: Ecto.Adapters.Postgres
 
   def priv do
@@ -15,14 +15,7 @@ defmodule Ecto.Integration.Postgres.TestRepo do
     parse_url "ecto://postgres:postgres@localhost/finch_test"
   end
 
-  # def log(action, fun) do
-  #   IO.inspect action
-  #   fun.()
-  # end
 
-  def query_apis do
-    [Ecto.Integration.Postgres.CustomAPI, Ecto.Query.API]
-  end
 end
 
 defmodule Finch.Test.Foo do

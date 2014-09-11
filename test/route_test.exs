@@ -14,3 +14,17 @@ defmodule RouteTest.Router do
     end
   end
 end
+
+
+
+defmodule Finch.Test.RouteTest do
+	use Finch.Test.Case
+	use ExUnit.Case
+	use PlugHelper
+	use Finch.Test.RouterHelper
+
+	test "should be able to get a list of foos" do
+		result = call(Router, :get, "/api/v1/foo")
+		:io.format("RESULT ~p~n", [result])
+	end
+end 
