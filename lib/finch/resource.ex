@@ -26,6 +26,7 @@ defmodule Finch.Resource do
       def bad_request, do: 400
       def unauthorized, do: 401
       def forbidden, do: 403
+      def not_found, do: 404
       def created, do: 201
       def accepted, do: 202
       def ok, do: 200
@@ -54,6 +55,8 @@ defmodule Finch.Resource do
           {:bad_request, errors} -> json conn, bad_request, serialize(errors)
           {:unauthorized, errors} -> json conn, unauthorized, serialize(errors)
           {:forbidden, errors} -> json conn, forbidden, serialize(errors)
+          {:not_found, errors} -> json conn, not_found, serialize(errors)
+
         end
       end
 
@@ -69,7 +72,6 @@ defmodule Finch.Resource do
 
       def tap(q, :where, {:show, _, params, _, _}) do
         id = get_id(params)
-        :io.format("GET ID ~p ~p ~p ~n", [id_field, id, params])
         q |> where([i], field(i, ^id_field) == ^id)
       end
 
@@ -87,9 +89,16 @@ defmodule Finch.Resource do
         model
           |> tap(:where, request) 
           |> select([i], count(i.id))
-          |> Repo.all
+          |> repo.all
       end
 
+
+      defp ensure_exists thing do
+        if is_nil thing do
+          throw {:not_found, %{error: "That resource doesn't exist"}}
+        end
+        thing
+      end
 
       ##
       # get the actual size (int) of the index
@@ -115,6 +124,7 @@ defmodule Finch.Resource do
           expr = expr |> where([u], ilike(field(u, ^fname), ^value))
         end
 
+
         if order do
           #implement backwards ordering too...
           order = String.to_atom order
@@ -124,8 +134,9 @@ defmodule Finch.Resource do
         data = expr
           |> limit(page_size)
           |> offset(offset)
-          |> Repo.all 
+          |> repo.all 
           |> to_serializable
+
 
         count = index_count(request)
         pages = trunc(count / page_size)
@@ -141,7 +152,7 @@ defmodule Finch.Resource do
         if model.has_user? and Dict.get(bundle, :user, false) do
           params = Dict.put(params, :user_id, bundle[:user].id)
         end
-        thing = model.allocate(params) |> Repo.insert |> to_serializable
+        thing = model.allocate(params) |> repo.insert |> to_serializable
         {conn, created, thing}
       end
 
@@ -149,16 +160,20 @@ defmodule Finch.Resource do
         result = model
           |> tap(:where, {:show, conn, params, module, bundle})
           |> tap(:select, {:show, conn, params, module, bundle})
-          |> Repo.all 
+          |> repo.all 
           |> List.first
-          |> to_serializable
-        {conn, ok, result}
+          |> ensure_exists
+        {conn, ok, to_serializable result}
       end
 
       def handle({:update, conn, params, module, bundle}) do
         id = get_id(params)
         row = model.allocate(params)
-        :ok = Ecto.Model.put_primary_key(row, id) |> Repo.update
+        try do
+          Ecto.Model.put_primary_key(row, id) |> repo.update
+        rescue
+          _ -> throw {:not_found, %{error: "That resource doesn't exist"}}
+        end
         {conn, accepted, to_serializable(row)}
       end
 
@@ -167,12 +182,12 @@ defmodule Finch.Resource do
         result = model
           |> tap(:where, {:show, conn, params, module, bundle})
           |> tap(:select, {:show, conn, params, module, bundle})
-          |> Repo.all
+          |> repo.all
           |> List.first
+          |> ensure_exists
 
-
-        Repo.delete(result)
-        {conn, accepted, to_serializable(result)}
+        repo.delete(result)
+        {conn, accepted, to_serializable result}
       end
 
       def to_serializable(thing) do

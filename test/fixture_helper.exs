@@ -21,10 +21,12 @@ end
 defmodule Finch.Test.Foo do
   use Ecto.Model
 
-  schema "posts" do
+  schema "foos" do
     field :title, :string
     field :text, :string
   end
+
+  use Finch.Model
 end
 
 
