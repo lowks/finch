@@ -18,22 +18,13 @@ defmodule Finch.Test.TestRepo do
 
 end
 
-defmodule Finch.Test.Foo do
-  use Ecto.Model
 
-  schema "foos" do
-    field :title, :string
-    field :text, :string
-  end
-
-  use Finch.Model
-end
 
 
 defmodule Finch.Test.Case do
   use ExUnit.CaseTemplate
 
-  using do
+  defmacro __using__(_) do
     quote do
       import unquote(__MODULE__)
       require TestRepo
@@ -41,15 +32,47 @@ defmodule Finch.Test.Case do
       import Ecto.Query
       alias Finch.Test.TestRepo
       alias Finch.Test.Foo
+
+      setup do
+        IO.puts("DOING SETUP")
+        Finch.Test.Case.setup_tables
+        :ok
+      end
+
     end
+  end
+
+  def sql_run commands do
+    Enum.each(commands, fn(sql) ->
+      :io.format("running: ~n~p~n", [sql])
+      result = Postgres.query(TestRepo, sql, [])
+      if match?({ :error, _ }, result) do
+        IO.puts("Test database setup SQL error'd: `#{sql}`")
+        IO.inspect(result)
+        System.halt(1)
+      end
+    end)
+  end
+
+
+  def setup_tables do
+    drop_tables = [
+      "DROP TABLE IF EXISTS foos",
+      "DROP TABLE IF EXISTS bars"
+    ]
+
+    create_tables = [
+      "CREATE TABLE foos (id serial PRIMARY KEY, title varchar(100), text varchar(100))",
+      "CREATE TABLE bars (id serial PRIMARY KEY, a_string varchar(100), an_int integer, a_bool boolean, a_dt timestamp DEFAULT NOW())"
+    ]
+    sql_run drop_tables
+    sql_run create_tables
   end
 
 end
 
 Application.ensure_all_started(:logger)
 
-
-IO.puts("WHAT")
 
 setup_cmds = [
   ~s(psql -U postgres -h localhost -c "DROP DATABASE IF EXISTS finch_test;"),
@@ -84,17 +107,6 @@ Enum.each(setup_cmds, fn(cmd) ->
   end
 end)
 
-setup_database = [
-  "CREATE TABLE foos (id serial PRIMARY KEY, title varchar(100), text varchar(100))"
-]
 
 { :ok, _pid } = TestRepo.start_link
 
-Enum.each(setup_database, fn(sql) ->
-  result = Postgres.query(TestRepo, sql, [])
-  if match?({ :error, _ }, result) do
-    IO.puts("Test database setup SQL error'd: `#{sql}`")
-    IO.inspect(result)
-    System.halt(1)
-  end
-end)
