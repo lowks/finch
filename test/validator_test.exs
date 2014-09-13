@@ -99,7 +99,7 @@ defmodule Finch.Test.Validator do
       %{"errors" => %{"a_bool" => "This needs to be a boolean"}} = Jazz.decode! conn.resp_body
     end
 
-    test "string validation" do
+    test "datetime validation" do
       headers = %{"Content-Type" => "application/json"}
       params = %{
         "a_string" => "a_string",
@@ -112,5 +112,28 @@ defmodule Finch.Test.Validator do
       assert conn.status == 400
       %{"errors" => %{"a_dt" => "This needs to be a datetime"}} = Jazz.decode! conn.resp_body
     end
+
+
+    test "multiple invalid fields" do
+      headers = %{"Content-Type" => "application/json"}
+      params = %{
+        "a_string" => 1,
+        "an_int" => "nan",
+        "a_bool" => "not a bool",
+        "a_dt" => "720"
+       }
+
+      conn = call(Router, :post, "/api/v1/bar", params, headers)
+      
+      assert conn.status == 400
+      %{"errors" => %{
+        "a_string" => "This needs to be a string",
+        "an_int" => "This needs to be an integer",
+        "a_bool" => "This needs to be a boolean",
+        "a_dt" => "This needs to be a datetime"
+        }} = Jazz.decode! conn.resp_body
+    end
+
+
 
 end 
