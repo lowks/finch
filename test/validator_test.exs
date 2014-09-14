@@ -149,5 +149,53 @@ defmodule Finch.Test.Validator do
     end
 
 
+   test "valid datetime works" do
+      headers = %{"Content-Type" => "application/json"}
+      params = %{
+        "a_string" => "a_string",
+        "an_int" => 1,
+        "a_bool" => false,
+        "a_dt" => "7/7/2014 2:52:20"
+       }
+      conn = call(Router, :post, "/api/v1/bar", params, headers)
+      assert conn.status == 201
+      %{"a_dt" => a_dt} = Jazz.decode! conn.resp_body
+      assert a_dt == "7/7/2014 2:52:20"
+
+    end
+
+
+    test "missing fields is a bad request" do
+      headers = %{"Content-Type" => "application/json"}
+      params = %{
+        "an_int" => 1,
+        "a_bool" => false,
+        "a_dt" => "7/7/2014 2:52:20"
+       }
+      conn = call(Router, :post, "/api/v1/bar", params, headers)
+      assert conn.status == 400
+      %{"errors" => 
+        %{
+          "a_string" => "This needs to be a string"
+        }
+      } = Jazz.decode! conn.resp_body
+    end
+
+
+
+    test "extra fields works fine" do
+      headers = %{"Content-Type" => "application/json"}
+      params = %{
+        "a_string" => "hello",
+        "an_extra_field" => "Something",
+        "an_int" => 1,
+        "a_bool" => false,
+        "a_dt" => "7/7/2014 2:52:20"
+       }
+      conn = call(Router, :post, "/api/v1/bar", params, headers)
+      assert conn.status == 201
+      js = Jazz.decode! conn.resp_body
+
+    end
 
 end 
