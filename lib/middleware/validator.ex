@@ -101,6 +101,10 @@ defmodule Finch.Middleware.ModelValidator do
       end
 
       def handle({verb, conn, params, module, bundle}), do: {verb, conn, params, module, bundle}
+    
+      defoverridable [
+        handle: 1
+      ]
     end
   end
 

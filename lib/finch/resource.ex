@@ -1,27 +1,26 @@
 defmodule Finch.Resource do
+  require Jazz
   import Phoenix.Controller
 
-  defp opts, do: [:exclude, :middleware, :triggers]
-  def default_for(:exclude), do: []
-
-  def default_for(:middleware), do: []
-  def default_for(:triggers), do: []
-
-
-
-  def default_opts(options) do
-    Enum.map(opts, fn key -> if options[key] == nil, do: {key, default_for(key)}, else: {key, options[key]} end)
+  def default_opts do
+    %{
+      :before => [],
+      :after => [],
+      :exclude => []
+    }
   end
 
 
-
-  defmacro __using__(options) do
-    all_opts = Finch.Resource.default_opts(options)
+  defmacro __using__(res_opts) do
 
     quote do
-      use Phoenix.Controller, unquote(all_opts)
-      require Jazz
+
+      @options Enum.into(unquote(res_opts), Finch.Resource.default_opts)
+
+      use Phoenix.Controller, @options
       use Jazz
+      import Finch.Resource
+      import Ecto.Query
 
       def bad_request, do: 400
       def unauthorized, do: 401
@@ -31,7 +30,6 @@ defmodule Finch.Resource do
       def accepted, do: 202
       def ok, do: 200
      
-      import Ecto.Query
 
 
       def id_field, do: :id
@@ -41,22 +39,30 @@ defmodule Finch.Resource do
 
 
       def dispatch(verb, conn, params) do
-        middleware = unquote(all_opts[:middleware])
-        triggers = unquote(all_opts[:triggers])
+        %{:before => before_request, :after => after_request} = @options
         #convert the string => val map to atom => val map
-        params =  Enum.into(Enum.map(params, fn {key, value} -> {String.to_atom(key), value} end), Map.new)
+        params =  Enum.into(Enum.map(params, 
+          fn {key, value} -> 
+            {String.to_atom(key), value} 
+          end), Map.new)
         try do
           request = {verb, conn, params, __MODULE__, %{}}
-          request = Enum.reduce(middleware, request, fn(layer, req) -> layer.handle(req) end)
-          response = handle request
-          {verb, conn, status, entity} = Enum.reduce(triggers, Tuple.insert_at(response, 0, verb), fn(layer, res) -> layer.handle(res) end)
-          json conn, status, serialize(entity)
+
+          request = Enum.reduce(before_request, request, fn(layer, req) -> layer.handle(req) end)
+            |> handle
+            |> Tuple.insert_at(0, verb)
+            |> Tuple.insert_at(4, __MODULE__)
+
+          #{verb, conn, status, result, module}
+          
+          {_, conn, status, result, _} = Enum.reduce(after_request, 
+            request, fn(layer, res) -> layer.handle(res) end)
+          json conn, status, serialize(result)
         catch
           {:bad_request, errors} -> json conn, bad_request, serialize(errors)
           {:unauthorized, errors} -> json conn, unauthorized, serialize(errors)
           {:forbidden, errors} -> json conn, forbidden, serialize(errors)
           {:not_found, errors} -> json conn, not_found, serialize(errors)
-
         end
       end
 
@@ -102,7 +108,7 @@ defmodule Finch.Resource do
 
       ##
       # get the actual size (int) of the index
-      defp index_count(request) do
+      def index_count(request) do
         case index_size(request) do
           [] -> 0
           [num] -> num
@@ -190,13 +196,31 @@ defmodule Finch.Resource do
         {conn, accepted, to_serializable result}
       end
 
+
+      def serializer, do: Finch.Serializer
+
       def to_serializable(thing) do
-        Finch.Serializer.to_serializable(thing, model, unquote(all_opts))
+        serializer.to_serializable(thing, model, @options)
       end
 
       def serialize(thing) do
         Jazz.encode!(thing)
       end
+
+
+      defoverridable [
+        to_serializable: 1,
+        handle: 1,
+        serializer: 0,
+        index_count: 1,
+        index_size: 1,
+        ensure_exists: 1,
+        tap: 3,
+        query: 1,
+        id_field: 0,
+        get_id: 1,
+        page_size: 0
+      ]
     end
   end
 end

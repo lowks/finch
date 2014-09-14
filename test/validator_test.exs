@@ -8,9 +8,7 @@ defmodule Validator.Resources.Bar do
   def model, do: Finch.Test.Bar
 
   use Finch.Resource, [
-    middleware: [
-      Validator.Validator
-    ]
+    before: [Validator.Validator]
   ]
 end
 
@@ -194,7 +192,7 @@ defmodule Finch.Test.Validator do
        }
       conn = call(Router, :post, "/api/v1/bar", params, headers)
       assert conn.status == 201
-      js = Jazz.decode! conn.resp_body
+      params = Jazz.decode! conn.resp_body
 
     end
 
