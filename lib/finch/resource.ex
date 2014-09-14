@@ -11,7 +11,7 @@ defmodule Finch.Resource do
   end
 
 
-  defmacro __using__(res_opts) do
+  defmacro __using__(res_opts \\ []) do
 
     quote do
 

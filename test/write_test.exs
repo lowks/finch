@@ -4,7 +4,7 @@ defmodule Write.Resources.Foo do
   def repo, do: Finch.Test.TestRepo
   def model, do: Finch.Test.Foo
 
-  use Finch.Resource, []
+  use Finch.Resource
 end
 
 
