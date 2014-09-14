@@ -2,7 +2,6 @@ defmodule Validator.Validator do
   use Finch.Middleware.ModelValidator
 end
 
-
 defmodule Validator.Resources.Bar do
 
   def repo, do: Finch.Test.TestRepo
@@ -99,7 +98,7 @@ defmodule Finch.Test.Validator do
       %{"errors" => %{"a_bool" => "This needs to be a boolean"}} = Jazz.decode! conn.resp_body
     end
 
-    test "datetime validation" do
+    test "datetime adaption" do
       headers = %{"Content-Type" => "application/json"}
       params = %{
         "a_string" => "a_string",
@@ -110,8 +109,23 @@ defmodule Finch.Test.Validator do
 
       conn = call(Router, :post, "/api/v1/bar", params, headers)
       assert conn.status == 400
-      %{"errors" => %{"a_dt" => "This needs to be a datetime"}} = Jazz.decode! conn.resp_body
+      %{"errors" => %{"a_dt" => "Invalid date format"}} = Jazz.decode! conn.resp_body
     end
+
+    test "datetime validation" do
+      headers = %{"Content-Type" => "application/json"}
+      params = %{
+        "a_string" => "a_string",
+        "an_int" => 1,
+        "a_bool" => true,
+        "a_dt" => 1
+       }
+
+      conn = call(Router, :post, "/api/v1/bar", params, headers)
+      assert conn.status == 400
+      %{"errors" => %{"a_dt" => "This needs to be a string"}} = Jazz.decode! conn.resp_body
+    end
+
 
 
     test "multiple invalid fields" do
@@ -130,7 +144,7 @@ defmodule Finch.Test.Validator do
         "a_string" => "This needs to be a string",
         "an_int" => "This needs to be an integer",
         "a_bool" => "This needs to be a boolean",
-        "a_dt" => "This needs to be a datetime"
+        "a_dt" => "Invalid date format"
         }} = Jazz.decode! conn.resp_body
     end
 

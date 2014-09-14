@@ -8,13 +8,6 @@ defmodule Finch.Model do
 
       defp to_fieldtype(_, nil), do: nil
 
-      defp to_fieldtype(:datetime, string_value) do
-        [date, time] = String.split(string_value, " ")
-        [day, month, year] = Enum.map(String.split(date, "/"), &(String.to_integer &1))
-        [hour, min, sec] = Enum.map(String.split(time, ":"), &(String.to_integer &1))
-        %Ecto.DateTime{year: year, month: month, day: day, hour: hour, min: min, sec: sec}
-      end
-
       defp to_fieldtype(_, value), do: value
 
       def field_types do
