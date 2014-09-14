@@ -11,11 +11,12 @@ this is a little thing that sits in between phoenix and ecto that makes building
 ```elixir
 
 defmodule MyCoolApp.Resources.Foo do
-
+  use Finch.Resource
+  
   def repo, do: MyCoolApp.Repo
   def model, do: MyCoolApp.Models.Foo
 
-  use Finch.Resource
+
 end
 
 
@@ -36,7 +37,7 @@ The code above will grant you the following powers...
 
 
 | method  | route | result |
-| ------------- | ------------- |
+| ------------- | ------------| ------------- |
 | GET  | /api/v1/foo  | list all the foos |
 | POST  | /api/v1/foo  | make a foo |
 | GET  | /api/v1/foo/#{id}  | get a foo with id |
