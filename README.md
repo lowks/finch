@@ -20,7 +20,7 @@ defmodule MyCoolApp.Resources.Foo do
 end
 
 
-defmodule Write.Router do
+defmodule MyCoolApp.Router do
   use Phoenix.Router
 
   scope path: "/api" do
