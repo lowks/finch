@@ -33,6 +33,8 @@ end
 ```
 
 The code above will grant you the following powers...
+
+
 | method  | route | result |
 | ------------- | ------------- |
 | GET  | /api/v1/foo  | list all the foos |
