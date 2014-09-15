@@ -163,9 +163,7 @@ defmodule Finch.Resource do
       end
 
       def handle({:show, conn, params, module, bundle}) do
-        result = model
-          |> tap(:where, {:show, conn, params, module, bundle})
-          |> tap(:select, {:show, conn, params, module, bundle})
+        result = query({:show, conn, params, module, bundle})
           |> repo.all 
           |> List.first
           |> ensure_exists

@@ -57,13 +57,26 @@ defmodule Finch.Test.Case do
 
   def setup_tables do
     drop_tables = [
+      "DROP TABLE IF EXISTS foo_comments",
       "DROP TABLE IF EXISTS foos",
       "DROP TABLE IF EXISTS bars"
     ]
 
     create_tables = [
       "CREATE TABLE foos (id serial PRIMARY KEY, title varchar(100), text varchar(100))",
-      "CREATE TABLE bars (id serial PRIMARY KEY, a_string varchar(100), an_int integer, a_bool boolean, a_dt timestamp DEFAULT NOW())"
+      "CREATE TABLE bars (
+        id serial PRIMARY KEY, 
+        a_string varchar(100), 
+        an_int integer, 
+        a_bool boolean, 
+        a_dt timestamp DEFAULT NOW()
+      )",
+      "CREATE TABLE foo_comments (
+        id serial PRIMARY KEY, 
+        title varchar(100), 
+        foo_id integer references foos(id)
+      )",
+
     ]
     sql_run drop_tables
     sql_run create_tables
