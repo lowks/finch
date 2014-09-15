@@ -17,6 +17,7 @@ Things it won't do:
   *  writable resource nesting (maybe for the future)
   *  XML/Protobufs/SOAP/whatever. Only json.
   *  cookie auth. use an api key. you could write a middleware layer that does this though. 
+  *  integration with anything other than ecto or phoenix
   *  make you a sandwich
 
 
