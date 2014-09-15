@@ -1,7 +1,24 @@
 finch
 =====
 
-this is a little thing that sits in between phoenix and ecto that makes building CRUDy REST APIs really simple
+this is a little thing that sits in between phoenix and ecto that makes building CRUDy REST APIs really simple.
+It does not offer many features. It aims to be really small and easy to understand. 
+
+
+Things it will do: 
+  *  basic CRUD operations for ecto models
+  *  separation of your model and API resource layer
+  *  filtering, ordering, paging of models at index endpoints
+  *  model validation with extensible validation middleware
+  *  basic auth with apikeys
+  *  sideloading resource relationships
+
+Things it won't do: 
+  *  writable resource nesting (maybe for the future)
+  *  XML/Protobufs/SOAP/whatever. Only json.
+  *  cookie auth. use an api key. you could write a middleware layer that does this though. 
+  *  make you a sandwich
+
 
 
 ## usage
