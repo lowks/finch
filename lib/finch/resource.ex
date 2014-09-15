@@ -84,16 +84,38 @@ defmodule Finch.Resource do
       def tap(q, :where, _), do: q
       def tap(q, :select, _), do: q |> select([i], i)
 
-      def query(request) do
+      def resource_query(request) do
         model |> tap(:where, request) |> tap(:select, request)
       end
 
+      def apply_filters(expr, params) do
+        filter = Dict.get(params, :filter, false)
+        if filter do
+          [fname, value] = String.split(filter, ":")
+          fname = String.to_atom fname
+          value = "%" <> value <> "%"
+          expr = expr |> where([u], ilike(field(u, ^fname), ^value))
+        end
+        expr
+      end
+
+      def apply_order(expr, params) do
+        case Dict.get(params, :order, false) do
+          false -> expr
+          order -> case String.at(order, 0) do
+            "-" -> expr |> order_by([u], desc: field(u, ^(String.to_atom (String.slice(order, 1, String.length order)))))
+            _ -> expr |> order_by([u], asc: field(u, ^(String.to_atom order)))
+          end
+        end
+      end
 
       ##
-      # return a count query
+      # return a count resource_query
       def index_size(request) do
+        {_, _, params, _, _} = request
         model
-          |> tap(:where, request) 
+          |> tap(:where, request)
+          |> apply_filters(params)
           |> select([i], count(i.id))
           |> repo.all
       end
@@ -119,25 +141,9 @@ defmodule Finch.Resource do
       def handle({:index, conn, params, module, bundle}) do
         request = {:index, conn, params, module, bundle}
         offset = (Dict.get(params, :page, "0") |> String.to_integer) * page_size
-        filter = Dict.get(params, :filter, false)
-        order = Dict.get(params, :order, false)
-
-        expr = query request
-        if filter do
-          [fname, value] = String.split(filter, ":")
-          fname = String.to_atom fname
-          value = "%" <> value <> "%"
-          expr = expr |> where([u], ilike(field(u, ^fname), ^value))
-        end
-
-
-        if order do
-          #implement backwards ordering too...
-          order = String.to_atom order
-          expr = expr |> order_by([u], desc: field(u, ^order))
-        end
-
-        data = expr
+        data = resource_query(request)
+          |> apply_filters(params)
+          |> apply_order(params)
           |> limit(page_size)
           |> offset(offset)
           |> repo.all 
@@ -163,7 +169,7 @@ defmodule Finch.Resource do
       end
 
       def handle({:show, conn, params, module, bundle}) do
-        result = query({:show, conn, params, module, bundle})
+        result = resource_query({:show, conn, params, module, bundle})
           |> repo.all 
           |> List.first
           |> ensure_exists
@@ -183,9 +189,7 @@ defmodule Finch.Resource do
 
       def handle({:destroy, conn, params, module, bundle}) do
         id = get_id(params)
-        result = model
-          |> tap(:where, {:show, conn, params, module, bundle})
-          |> tap(:select, {:show, conn, params, module, bundle})
+        result = resource_query({:show, conn, params, module, bundle})
           |> repo.all
           |> List.first
           |> ensure_exists
@@ -214,7 +218,7 @@ defmodule Finch.Resource do
         index_size: 1,
         ensure_exists: 1,
         tap: 3,
-        query: 1,
+        resource_query: 1,
         id_field: 0,
         get_id: 1,
         page_size: 0

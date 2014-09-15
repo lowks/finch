@@ -13,14 +13,16 @@ defmodule BelongsToTest.Resources.FooComment do
   def repo, do: Finch.Test.TestRepo
   def model, do: FooComment
 
-  def query({:show, _, params, _, _}) do
+  def resource_query({:show, _, params, _, _}) do
     id = String.to_integer params[:id]
-    IO.inspect "doing a show query #{id}"
     from fc in FooComment,
       left_join: f in fc.foo,
       where: fc.id == ^id,
       select: assoc(fc, foo: f)
   end
+
+  def resource_query(request), do: super(request)
+
 
 end
 
@@ -58,8 +60,6 @@ defmodule Finch.Test.BelongsToTest do
       conn = call(Router, :post, "/api/v1/foo_comment", params, headers)
       assert conn.status == 201
       %{"title" => "a foo comment"} = Jazz.decode! conn.resp_body
-
-      IO.inspect conn.resp_body
     end
 
 
@@ -86,7 +86,7 @@ defmodule Finch.Test.BelongsToTest do
       } = Jazz.decode! conn.resp_body
     end
 
-    test "if you join to the belongs_to relation, you get the entire relation sideloaded into the response" do
+    test "if you don't join to the belongs_to relation, you just get the id of the related model" do
       headers = %{"Content-Type" => "application/json"}
 
       params = %{"title" => "hello", "text" => "world"}
@@ -100,7 +100,7 @@ defmodule Finch.Test.BelongsToTest do
       %{"id" => foo_id} = Jazz.decode! conn.resp_body
 
       conn = call(Router, :get, "/api/v1/foo_comment", params, headers)
-      [%{"foo_id" => id}] = Jazz.decode! conn.resp_body
+      %{"data" => [%{"foo_id" => id}]} = Jazz.decode! conn.resp_body
     end
 
 
