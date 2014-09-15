@@ -4,7 +4,7 @@ finch
 this is a little thing that sits in between phoenix and ecto that makes building CRUDy REST APIs really simple
 
 
-### usage
+## usage
 
 ```elixir
 
@@ -54,10 +54,22 @@ The code above will grant you the following powers...
 
 
 
-### middleware
+## filtering, paging, and ordering
+
+
+### paging
+By default, a ```GET``` request to an index endpoint will page the models. The default page_size is 40, but you can implement ```page_size/0``` to override that. Adding the ?page=<some_number> will fetch the page you specify
+
+
+### filtering
+derpderp
+
+
+
+## middleware
 you can add middleware that runs before and after the request to your resources. 
 
-#### Validators
+### Validators
 using the same router and Foo model as above, you could so something like this
 
 ```elixir
@@ -105,6 +117,8 @@ to the /api/v1/foo endpoint would result in a 400 BadRequest with the following 
   }
 }
 ```
+
+##### custom validation
 
 you can also implement custom validation on fields. the validate_field/3 function 
 gets run for each field. in this case posting the following 
