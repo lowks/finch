@@ -35,9 +35,27 @@ defmodule Finch.Resource do
       def id_field, do: :id
       def get_id(params), do: String.to_integer(params[id_field])
 
+
+      @doc """
+        Returns the size of the slice of models that will be returned
+        on GETting an :index endpoint
+      """
       def page_size, do: 40
 
 
+      @doc """
+        Internal dispatch method that runs the middleware before the 
+        request is handled, calls the handler, and then calls the middleware
+        after the request is handled. 
+
+        Catches exceptions thrown when access to a resource fails due to one of the
+        following cases:
+          :bad_request
+          :unauthorized
+          :forbidden
+          :not_found
+
+      """
       def dispatch(verb, conn, params) do
         %{:before => before_request, :after => after_request} = @options
         #convert the string => val map to atom => val map
@@ -75,22 +93,40 @@ defmodule Finch.Resource do
 
 
 
-
+      @doc """
+        The where clause for a specific request type. This allows you to tap 
+        into the chain where the query expression is created and implement
+        specific functionality. By default for :show it just does a lookup on the 
+        id attribute
+      """
       def tap(q, :where, {:show, _, params, _, _}) do
         id = get_id(params)
         q |> where([i], field(i, ^id_field) == ^id)
       end
 
       def tap(q, :where, _), do: q
+
+      @doc """
+        Just like the tap/3 method for :where, this allows you to tap into the 
+        chain where the query expression is created and implement specific functionality
+        for model selection
+      """
       def tap(q, :select, _), do: q |> select([i], i)
 
+      @doc """
+        Composes the model, where, and selection parts of the request handling. You 
+        can override this to do whatever query you want. If you override this, you will
+        likely need to implement index_size/1 so the meta.count value in the :index 
+        endpoint is correct
+      """
       def query(request) do
         model |> tap(:where, request) |> tap(:select, request)
       end
 
 
-      ##
-      # return a count query
+      @doc """
+        Returns the count of models for an index request
+      """
       def index_size(request) do
         model
           |> tap(:where, request) 
@@ -98,7 +134,10 @@ defmodule Finch.Resource do
           |> repo.all
       end
 
-
+      @doc """
+        Ensures that a model exists. If it does not exist, a :not_found
+        exception is thrown. 
+      """
       defp ensure_exists thing do
         if is_nil thing do
           throw {:not_found, %{error: "That resource doesn't exist"}}
@@ -116,6 +155,11 @@ defmodule Finch.Resource do
       end
 
 
+      @doc """
+        Handles the :index endpoint. Returns a response with data and meta
+        attributes. data is a slice of models page_size/0 long, and meta contains
+        the total count of models, number of pages in total, and the next page. 
+      """
       def handle({:index, conn, params, module, bundle}) do
         request = {:index, conn, params, module, bundle}
         offset = (Dict.get(params, :page, "0") |> String.to_integer) * page_size
@@ -154,6 +198,10 @@ defmodule Finch.Resource do
         {conn, ok, result}
       end
 
+
+      @doc """
+        Creates a model and saves it to the database. 
+      """
       def handle({:create, conn, params, module, bundle}) do
         if model.has_user? and Dict.get(bundle, :user, false) do
           params = Dict.put(params, :user_id, bundle[:user].id)
@@ -162,6 +210,9 @@ defmodule Finch.Resource do
         {conn, created, thing}
       end
 
+      @doc """
+        Gets a single model from the database and returns it
+      """
       def handle({:show, conn, params, module, bundle}) do
         result = model
           |> tap(:where, {:show, conn, params, module, bundle})
@@ -172,6 +223,10 @@ defmodule Finch.Resource do
         {conn, ok, to_serializable result}
       end
 
+      @doc """
+        Gets a model from the database, sets the parameters that were passed in 
+        the request, and saves it to the database.
+      """
       def handle({:update, conn, params, module, bundle}) do
         id = get_id(params)
         row = model.allocate(params)
@@ -183,6 +238,9 @@ defmodule Finch.Resource do
         {conn, accepted, to_serializable(row)}
       end
 
+      @doc """
+        Delets a model from the database
+      """
       def handle({:destroy, conn, params, module, bundle}) do
         id = get_id(params)
         result = model
@@ -197,12 +255,22 @@ defmodule Finch.Resource do
       end
 
 
+      @doc """
+        Returns the serializer to be used 
+      """
       def serializer, do: Finch.Serializer
 
+      @doc """
+        Converts a list or single ecto model into a map, which
+        can then be JSONified by a JSON library
+      """
       def to_serializable(thing) do
         serializer.to_serializable(thing, model, @options)
       end
 
+      @doc """
+        Do the actual JSON conversion
+      """
       def serialize(thing) do
         Jazz.encode!(thing)
       end

@@ -1,10 +1,10 @@
 
 defmodule Write.Resources.Foo do
+  use Finch.Resource
 
   def repo, do: Finch.Test.TestRepo
   def model, do: Finch.Test.Foo
 
-  use Finch.Resource
 end
 
 
