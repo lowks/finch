@@ -20,6 +20,10 @@ defimpl Finch.Serializer, for: Any do
 
   def to_serializable(nil, _, _), do: nil
 
+  @doc """
+    Convert the model struct into a map which can 
+    be serialized by the json lib
+  """
   def to_serializable(model, schema, options) do
     exclude = options[:exclude]
     base = schema.__schema__(:keywords, model)
