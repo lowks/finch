@@ -57,22 +57,22 @@ The code above will grant you the following powers...
 ### middleware
 you can add middleware that runs before and after the request to your resources. 
 
+#### Validators
+using the same router and Foo model as above, you could so something like this
+
 ```elixir
 
 defmodule MyCoolApp.FooValidator do
   use Finch.Middleware.ModelValidator
-end
 
-
-defmodule MyCoolApp.Models.Foo do
-  use Finch.Model
-
-  schema "foos" do
-    field :title, :string
-    field :text, :string
+  def validate_field(_, :title, val) do
+    if val == "can you" do
+      throw {:bad_request, %{:errors => %{:title => "can you not"}}}
+    end
+    {:title, val}
   end
-
 end
+
 
 defmodule MyCoolApp.Resources.Foo do
 
@@ -84,16 +84,6 @@ defmodule MyCoolApp.Resources.Foo do
   ]
 end
 
-
-defmodule MyCoolApp.Router do
-  use Phoenix.Router
-
-  scope path: "/api" do
-    scope path: "/v1" do
-      resources "/foo", MyCoolApp.Resources.Foo
-    end
-  end
-end
 
 ```
 
@@ -115,3 +105,24 @@ to the /api/v1/foo endpoint would result in a 400 BadRequest with the following 
   }
 }
 ```
+
+you can also implement custom validation on fields. the validate_field/3 function 
+gets run for each field. in this case posting the following 
+
+```json
+{
+  "title" : "can you",
+  "text": "some text"
+}
+
+```
+to /api/v1/foo would result in a 400 BadRequest with the following message
+```json
+{
+  "errors" : {
+    "title": "can you not"
+  }
+}
+```
+
+
