@@ -108,7 +108,7 @@ POSTing the following json
 
 ```
 
-to the /api/v1/foo endpoint would result in a 400 BadRequest with the following message
+to the ```/api/v1/foo``` endpoint would result in a 400 BadRequest with the following message
 
 ```json
 {
@@ -120,7 +120,7 @@ to the /api/v1/foo endpoint would result in a 400 BadRequest with the following 
 
 ##### custom validation
 
-you can also implement custom validation on fields. the validate_field/3 function 
+you can also implement custom validation on fields. the ```validate_field/3``` function 
 gets run for each field. in this case posting the following 
 
 ```json
@@ -130,7 +130,7 @@ gets run for each field. in this case posting the following
 }
 
 ```
-to /api/v1/foo would result in a 400 BadRequest with the following message
+to ```/api/v1/foo``` would result in a 400 BadRequest with the following message
 ```json
 {
   "errors" : {
