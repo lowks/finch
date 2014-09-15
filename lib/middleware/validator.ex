@@ -2,6 +2,17 @@ defmodule Finch.Middleware.ModelValidator do
   @verbs [:create, :show, :index, :destroy, :update]
 
 
+  @doc """
+    validate_type/3 takes the type, name and value of the field
+    and returns 
+      {:ok, name, value} when the field passes validation
+      {:error, name, error_message} when the field fails validation
+
+    Validation keeps running through all fields even if the very first
+    one fails. If there are errors at the end then a :bad_request
+    exception is thrown and is handled by the resource dispatch method, 
+    which means no more request handling takes place. 
+  """
   def validate_type(:integer, name, value) when is_integer(value), do: {:ok, name, value}
   def validate_type(:integer, name, _), do: {:error, name, "This needs to be an integer"}
 
@@ -31,6 +42,17 @@ defmodule Finch.Middleware.ModelValidator do
   # :date
   # :time
   # :virtual
+  # 
+  
+  @doc """
+    Validate a datetime field. 
+    By default the format is 
+    "day/month/year hour:min:sec"
+
+    JSON serialization is configurable via the Jazz.Encoder 
+    protocol in the encode method. 
+
+  """
   def validate_type(:datetime, name, value) when is_bitstring(value) do
     try do
       [date, time] = String.split(value, " ")
@@ -42,20 +64,41 @@ defmodule Finch.Middleware.ModelValidator do
     end
   end
 
-  def validate_type(:datetime, name, value), do: {:error, name, "This needs to be a string"}
+  def validate_type(:datetime, name, value) do
+    {:error, name, "This needs to be a string"}
+  end
 
   def validate_type(_, name, value), do: {:ok, name, value}
 
-  ###
-  # By default, all fields just work. override this for specific stuff tho
+
+  @doc """
+    Provides a hook you can override for custom validation on a specific 
+    field. The type of the field may be acceptable, but you may want to 
+    validate another property about the field, such as a number range, 
+    or existence of a model, etc. 
+  """
   def validate_field(_, key, val), do: {key, val}
+
+  @doc """
+    An overridable hook that runs after all the other validation
+    that allows you to validate all fields together, ensuring that the
+    combination of all fields is acceptable. If it is unacceptable
+    then a {:bad_request, message} exception should be thrown. 
+  """
   def validate_together(_, params, bundle), do: {params, bundle}
 
 
+  @doc """
+    Defines which fields are immune to validation
+  """
   def ignore_fields(:create), do: [:id] ++ ignore_fields(nil)
   def ignore_fields(_), do: [:created, :modified]
 
 
+  @doc """
+    Adapt the erros that came out of the validation process to a helpful
+    map that will be returned to the client 
+  """
   def make_error_message(errors) do
     %{:errors => Enum.map(errors, fn {:error, name, value} -> {name, value} end) |> Enum.into(%{})}
   end
@@ -87,7 +130,18 @@ defmodule Finch.Middleware.ModelValidator do
 
 
 
+  @doc """
+  
+    Adds the handle/1 method for each REST verb
+    by default a handle method for each verb is added, 
+    but this is configurable via the options
 
+    ## options
+      :only list of verbs that will be validated
+      :except list of verbs that will not be validated
+
+
+  """
   defmacro __using__(options) do
     only = Keyword.get(options, :only, @verbs)
     except = Keyword.get(options, :except, [])
