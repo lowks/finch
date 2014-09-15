@@ -75,7 +75,7 @@ The code above will grant you the following powers...
 
 
 ### paging
-By default, a ```GET``` request to an index endpoint will page the models. The default page_size is 40, but you can implement ```page_size/0``` to override that. Adding the ?page=<some_number> will fetch the page you specify
+By default, a ```GET``` request to an index endpoint will page the models. The default page size is 40, but you can implement ```page_size/0``` to override that. Adding the ```?page=some_number``` url parameter will fetch the page you specify. index endpoints return a meta object that gives you information relevant to paging. 
 
 
 ### filtering
