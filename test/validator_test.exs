@@ -1,5 +1,14 @@
 defmodule Validator.Validator do
   use Finch.Middleware.ModelValidator
+
+  def validate_field(_, :a_string, val) do
+    if val == "can you" do
+      throw {:bad_request, %{:errors => %{:a_string => "can you not"}}}
+    end
+    {:a_string, val}
+  end
+
+  def validate_field(verb, name, val), do: super(verb, name, val)
 end
 
 defmodule Validator.Resources.Bar do
@@ -51,6 +60,22 @@ defmodule Finch.Test.Validator do
         "a_bool" => true,
         "a_dt" => "7/7/2014 8:20:20"
       } = Jazz.decode! conn.resp_body
+    end
+
+
+    test "custom field validation" do
+      headers = %{"Content-Type" => "application/json"}
+      params = %{
+        "a_string" => "can you",
+        "an_int" => 1,
+        "a_bool" => true,
+        "a_dt" => "7/7/2014 8:20:20"
+       }
+
+      conn = call(Router, :post, "/api/v1/bar", params, headers)
+      assert conn.status == 400
+      IO.puts conn.resp_body
+      %{"errors" => %{"a_string" => "can you not"}} = Jazz.decode! conn.resp_body
     end
 
     test "string validation" do
@@ -147,7 +172,7 @@ defmodule Finch.Test.Validator do
     end
 
 
-   test "valid datetime works" do
+    test "valid datetime works" do
       headers = %{"Content-Type" => "application/json"}
       params = %{
         "a_string" => "a_string",

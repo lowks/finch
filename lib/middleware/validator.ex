@@ -71,21 +71,7 @@ defmodule Finch.Middleware.ModelValidator do
   def validate_type(_, name, value), do: {:ok, name, value}
 
 
-  @doc """
-    Provides a hook you can override for custom validation on a specific 
-    field. The type of the field may be acceptable, but you may want to 
-    validate another property about the field, such as a number range, 
-    or existence of a model, etc. 
-  """
-  def validate_field(_, key, val), do: {key, val}
 
-  @doc """
-    An overridable hook that runs after all the other validation
-    that allows you to validate all fields together, ensuring that the
-    combination of all fields is acceptable. If it is unacceptable
-    then a {:bad_request, message} exception should be thrown. 
-  """
-  def validate_together(_, params, bundle), do: {params, bundle}
 
 
   @doc """
@@ -104,29 +90,8 @@ defmodule Finch.Middleware.ModelValidator do
   end
 
 
-  defp params_to_check(verb, params, field_types) do
-    included = Enum.filter(field_types, fn {name, _} -> not name in ignore_fields(verb) end) 
-    Enum.map(included, fn {name, _type} -> {name, Dict.get(params, name)} end)
-  end
 
-  def validate({verb, conn, params, module, bundle}) do
-    field_types = module.model.field_types
-    check_params = params_to_check(verb, params, field_types)
 
-    checked = check_params
-      |> Enum.map(fn {key, val} -> {Keyword.fetch!(field_types, key), key, val} end)
-      |> Enum.map(fn {field_type, key, val} -> validate_type(field_type, key, val) end)
-
-    errors = Enum.filter(checked, fn {status, _, _} -> status == :error end)
-    if length(errors) > 0, do: throw {:bad_request,  make_error_message(errors)}
-
-    checked = checked
-      |> Enum.map(fn {_, key, val} -> validate_field(verb, key, val) end)
-
-    params = Enum.into(checked, params)
-    {params, bundle} = validate_together(verb, params, bundle)
-    {verb, conn, params, module, bundle}
-  end
 
 
 
@@ -147,17 +112,60 @@ defmodule Finch.Middleware.ModelValidator do
     except = Keyword.get(options, :except, [])
     only = (only -- except) 
     quote [unquote: false, bind_quoted: [only: only]] do
+      import Finch.Middleware.ModelValidator
+      @doc """
+        Provides a hook you can override for custom validation on a specific 
+        field. The type of the field may be acceptable, but you may want to 
+        validate another property about the field, such as a number range, 
+        or existence of a model, etc. 
+      """
+      def validate_field(_, key, val), do: {key, val}
+
+      @doc """
+        An overridable hook that runs after all the other validation
+        that allows you to validate all fields together, ensuring that the
+        combination of all fields is acceptable. If it is unacceptable
+        then a {:bad_request, message} exception should be thrown. 
+      """
+      def validate_together(_, params, bundle), do: {params, bundle}
+
+      defp params_to_check(verb, params, field_types) do
+        included = Enum.filter(field_types, fn {name, _} -> not name in ignore_fields(verb) end) 
+        Enum.map(included, fn {name, _type} -> {name, Dict.get(params, name)} end)
+      end
+
+      def validate({verb, conn, params, module, bundle}) do
+        field_types = module.model.field_types
+        check_params = params_to_check(verb, params, field_types)
+
+        checked = check_params
+          |> Enum.map(fn {key, val} -> {Keyword.fetch!(field_types, key), key, val} end)
+          |> Enum.map(fn {field_type, key, val} -> validate_type(field_type, key, val) end)
+
+        errors = Enum.filter(checked, fn {status, _, _} -> status == :error end)
+        if length(errors) > 0, do: throw {:bad_request,  make_error_message(errors)}
+
+        checked = checked
+          |> Enum.map(fn {_, key, val} -> validate_field(verb, key, val) end)
+
+        params = Enum.into(checked, params)
+        {params, bundle} = validate_together(verb, params, bundle)
+        {verb, conn, params, module, bundle}
+      end
+
 
       for verb <- only do
         def handle({unquote(verb), conn, params, module, bundle}) do 
-          Finch.Middleware.ModelValidator.validate({unquote(verb), conn, params, module, bundle})
+          validate({unquote(verb), conn, params, module, bundle})
         end
       end
 
       def handle({verb, conn, params, module, bundle}), do: {verb, conn, params, module, bundle}
     
       defoverridable [
-        handle: 1
+        handle: 1, 
+        validate_field: 3, 
+        validate_together: 3
       ]
     end
   end
