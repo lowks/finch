@@ -75,13 +75,6 @@ defmodule Finch.Middleware.ModelValidator do
 
 
   @doc """
-    Defines which fields are immune to validation
-  """
-  def ignore_fields(:create), do: [:id] ++ ignore_fields(nil)
-  def ignore_fields(_), do: [:created, :modified]
-
-
-  @doc """
     Adapt the erros that came out of the validation process to a helpful
     map that will be returned to the client 
   """
@@ -162,6 +155,16 @@ defmodule Finch.Middleware.ModelValidator do
 
       def handle({verb, conn, params, module, bundle}), do: {verb, conn, params, module, bundle}
     
+
+
+      @doc """
+        Defines which fields are immune to validation
+      """
+      def ignore_fields(:create), do: [:id] ++ ignore_fields(nil)
+      def ignore_fields(_), do: [:created, :modified]
+
+
+
       defoverridable [
         handle: 1, 
         validate_field: 3, 
