@@ -165,7 +165,8 @@ defmodule Finch.Middleware.ModelValidator do
       defoverridable [
         handle: 1, 
         validate_field: 3, 
-        validate_together: 3
+        validate_together: 3,
+        ignore_fields: 1
       ]
     end
   end
