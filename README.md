@@ -80,8 +80,21 @@ By default, a ```GET``` request to an index endpoint will page the models. The d
 
 
 ### filtering
-derpderp
+You can filter on fields as well, which just does a case insensitive like query. you
+can change how the filtering happens by overriding ```apply_filters/2``` in your 
+resource.
 
+Adding ```?filter=field_name:value``` will select the models where ```field_name```
+is like ```value```
+
+### ordering
+You can order the index endpoint. Add ```?order=field_name``` to get 
+models sorted by ```field_name```. To reverse the order, add a - (minus sign)
+in front of the ```field_name```
+
+
+Paging, filtering, ordering all can be combined in a request. All of them
+can be overridden for custom behavior. 
 
 
 ## middleware
@@ -101,6 +114,9 @@ defmodule MyCoolApp.FooValidator do
     end
     {:title, val}
   end
+
+  def validate_field(verb, name, val), do: super(verb, name, val)
+
 end
 
 
