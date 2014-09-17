@@ -1,5 +1,10 @@
 defmodule Validator.Validator do
-  use Finch.Middleware.ModelValidator
+  use Finch.Middleware.ModelValidator, [only: [:create, :update]]
+
+  
+  def validate_field(:index, :a_string, _) do
+      throw {:bad_request, "This should never happen"}
+  end
 
   def validate_field(_, :a_string, val) do
     if val == "can you" do
@@ -8,8 +13,22 @@ defmodule Validator.Validator do
     {:a_string, val}
   end
 
+
+
   def validate_field(verb, name, val), do: super(verb, name, val)
 end
+
+
+defmodule Validator.AnotherValidator do
+  use Finch.Middleware.ModelValidator, [except: [:index]]
+
+  def validate_field(:index, :a_string, _) do
+      throw {:bad_request, "This should never happen"}
+  end
+
+  def validate_field(verb, name, val), do: super(verb, name, val)
+end
+
 
 defmodule Validator.Resources.Bar do
 
@@ -17,7 +36,23 @@ defmodule Validator.Resources.Bar do
   def model, do: Finch.Test.Bar
 
   use Finch.Resource, [
-    before: [Validator.Validator]
+    before: [
+      Validator.Validator
+    ]
+  ]
+end
+
+
+defmodule Validator.Resources.DoubleBar do
+
+  def repo, do: Finch.Test.TestRepo
+  def model, do: Finch.Test.Bar
+
+  use Finch.Resource, [
+    before: [
+      Validator.Validator, 
+      Validator.AnotherValidator
+    ]
   ]
 end
 
@@ -28,6 +63,8 @@ defmodule Validator.Router do
   scope path: "/api" do
     scope path: "/v1" do
       resources "/bar", Validator.Resources.Bar, except: []
+      resources "/double_validation", Validator.Resources.DoubleBar, except: []
+
     end
   end
 end
@@ -62,6 +99,30 @@ defmodule Finch.Test.Validator do
       } = Jazz.decode! conn.resp_body
     end
 
+
+    test "validation is not run for verbs not specified in 'only' options" do
+      headers = %{"Content-Type" => "application/json"}
+      params = %{
+        "a_string" => "hello",
+        "an_int" => 1,
+        "a_bool" => true,
+        "a_dt" => "7/7/2014 8:20:20"
+       }
+      conn = call(Router, :get, "/api/v1/bar", params, headers)
+      assert conn.status == 200
+    end
+
+    test "validation is not run for verbs specified in 'except' options" do
+      headers = %{"Content-Type" => "application/json"}
+      params = %{
+        "a_string" => "hello",
+        "an_int" => 1,
+        "a_bool" => true,
+        "a_dt" => "7/7/2014 8:20:20"
+       }
+      conn = call(Router, :get, "/api/v1/double_validation", params, headers)
+      assert conn.status == 200
+    end
 
     test "custom field validation" do
       headers = %{"Content-Type" => "application/json"}
@@ -106,7 +167,6 @@ defmodule Finch.Test.Validator do
       %{"errors" => %{"an_int" => "This needs to be an integer"}} = Jazz.decode! conn.resp_body
     end
 
-
     test "bool validation" do
       headers = %{"Content-Type" => "application/json"}
       params = %{
@@ -149,8 +209,6 @@ defmodule Finch.Test.Validator do
       %{"errors" => %{"a_dt" => "This needs to be a string"}} = Jazz.decode! conn.resp_body
     end
 
-
-
     test "multiple invalid fields" do
       headers = %{"Content-Type" => "application/json"}
       params = %{
@@ -171,7 +229,6 @@ defmodule Finch.Test.Validator do
         }} = Jazz.decode! conn.resp_body
     end
 
-
     test "valid datetime works" do
       headers = %{"Content-Type" => "application/json"}
       params = %{
@@ -184,9 +241,7 @@ defmodule Finch.Test.Validator do
       assert conn.status == 201
       %{"a_dt" => a_dt} = Jazz.decode! conn.resp_body
       assert a_dt == "7/7/2014 2:52:20"
-
     end
-
 
     test "missing fields is a bad request" do
       headers = %{"Content-Type" => "application/json"}
@@ -204,8 +259,6 @@ defmodule Finch.Test.Validator do
       } = Jazz.decode! conn.resp_body
     end
 
-
-
     test "extra fields works fine" do
       headers = %{"Content-Type" => "application/json"}
       params = %{
@@ -218,7 +271,6 @@ defmodule Finch.Test.Validator do
       conn = call(Router, :post, "/api/v1/bar", params, headers)
       assert conn.status == 201
       params = Jazz.decode! conn.resp_body
-
     end
 
 end 
