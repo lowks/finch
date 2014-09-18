@@ -1,6 +1,8 @@
 finch
 =====
 
+### this is very much a wip so heads up it probably is not very good
+
 this is a little thing that sits in between phoenix and ecto that makes building CRUDy REST APIs really simple.
 It does not offer many features. It aims to be really small and easy to understand. 
 
