@@ -123,13 +123,35 @@ defmodule Finch.Resource do
         model |> tap(:where, request) |> tap(:select, request)
       end
 
+
+      def apply_field_filter(:string, expr, name, value) do
+          value = "%" <> value <> "%"
+          expr |> where([u], ilike(field(u, ^name), ^value))
+      end
+
+      def apply_field_filter(:boolean, expr, name, value) do
+        as_bool = value == "true"
+        expr |> where([u], field(u, ^name) == ^as_bool)
+      end
+
+      def apply_field_filter(:integer, expr, name, value) do
+        as_int = String.to_integer value
+        expr |> where([u], field(u, ^name) == ^as_int)
+      end
+
+
+      def apply_field_filter(_, expr, name, value) do
+        expr |> where([u], field(u, ^name) == ^value)
+      end
+
+
       def apply_filters(expr, params) do
         filter = Dict.get(params, :filter, false)
         if filter do
           [fname, value] = String.split(filter, ":")
           fname = String.to_atom fname
-          value = "%" <> value <> "%"
-          expr = expr |> where([u], ilike(field(u, ^fname), ^value))
+          field_type = model.field_types[fname]
+          expr = apply_field_filter(field_type, expr, fname, value)
         end
         expr
       end

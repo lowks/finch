@@ -5,6 +5,23 @@ defmodule FilterTest.Resources.Foo do
   def model, do: Finch.Test.Foo
 end
 
+defmodule Validator.Validator do
+  use Finch.Middleware.ModelValidator, [only: [:create, :update]]
+end
+
+
+defmodule FilterTest.Resources.Bar do
+
+  use Finch.Resource, [
+    before: [
+      Validator.Validator
+    ]
+  ]
+  def repo, do: Finch.Test.TestRepo
+  def model, do: Finch.Test.Bar
+
+end
+
 
 
 defmodule FilterTest.Router do
@@ -13,6 +30,8 @@ defmodule FilterTest.Router do
   scope path: "/api" do
     scope path: "/v1" do
       resources "/foo", FilterTest.Resources.Foo, except: []
+      resources "/bar", FilterTest.Resources.Bar, except: []
+
     end
   end
 end
@@ -41,6 +60,50 @@ defmodule Finch.Test.FilterTest do
       assert length(foos) == 5
       assert count == 5
     end
+
+
+    test "can filter on bools" do
+      headers = %{"Content-Type" => "application/json"}
+
+      for n <- 1..5 do
+        params = %{
+          "a_string" => "hello #{n}", 
+          "an_int" => n,
+          "a_bool" => (rem(n, 2) == 0),
+          "a_dt" => "7/7/2014 8:20:20"
+        }
+        conn = call(Router, :post, "/api/v1/bar", params, headers)
+        assert conn.status == 201
+      end
+
+      conn = call(Router, :get, "/api/v1/bar?filter=a_bool:false")
+      %{"data" => data, "meta" => %{"count" => count}} = Jazz.decode! conn.resp_body
+      assert count == 3
+      assert length(data) == 3
+    end
+
+
+    test "can filter on ints" do
+      headers = %{"Content-Type" => "application/json"}
+
+      for n <- 1..5 do
+        params = %{
+          "a_string" => "hello #{n}", 
+          "an_int" => n,
+          "a_bool" => (rem(n, 2) == 0),
+          "a_dt" => "7/7/2014 8:20:20"
+        }
+        conn = call(Router, :post, "/api/v1/bar", params, headers)
+        assert conn.status == 201
+      end
+
+      conn = call(Router, :get, "/api/v1/bar?filter=an_int:1")
+      %{"data" => [data]} = Jazz.decode! conn.resp_body
+      %{"data" => data, "meta" => %{"count" => count}} = Jazz.decode! conn.resp_body
+      assert count == 1
+      assert length(data) == 1
+    end
+
 
     test "can filter on some field name" do
       headers = %{"Content-Type" => "application/json"}
