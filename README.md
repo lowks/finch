@@ -1,7 +1,7 @@
 finch
 =====
 
-### don't use this because it's going to change to use the plug spec
+### don't use this because it's going to change to use the plug spec and ecto model validations
 
 this is a little thing that sits in between phoenix and ecto that makes building CRUDy REST APIs really simple.
 It does not offer many features. It aims to be really small and easy to understand. 
