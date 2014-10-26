@@ -8,7 +8,7 @@ defmodule Finch.Mixfile do
      package: [
         contributors: ["Chris Duranti"],
         licenses: ["MIT"],
-        links: [github: "https://github.com/rozap/finch"]
+        links: %{"github" => "https://github.com/rozap/finch"}
      ],
      description: """
       Resource layer for Phoenix and Ecto projects for auto-generated RESTful CRUD APIs.
